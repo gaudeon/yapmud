@@ -6,4 +6,6 @@ use Game;
 
 my $game = Game.new;
 
+ok $game.start, "Game starts";
+
 done-testing();
