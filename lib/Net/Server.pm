@@ -2,5 +2,5 @@
 
 use v6;
 
-role Net::Server {
+class Net::Server {
 }

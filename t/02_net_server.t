@@ -2,10 +2,10 @@ use v6;
 use Test;
 use lib 'lib';
 
-use Net::Server::Telnet;
+use Net::Server;
 
-my $net_server_telnet = Net::Server::Telnet.new;
+my $server = Net::Server.new;
 
-does-ok $net_server_telnet, Net::Server, 'Net::Server::Telnet has role Net::Server';
+isa-ok $server, Net::Server;
 
 done-testing();

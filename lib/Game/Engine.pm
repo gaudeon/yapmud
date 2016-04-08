@@ -2,5 +2,5 @@
 
 use v6;
 
-role Game::Engine {
+class Game::Engine {
 }

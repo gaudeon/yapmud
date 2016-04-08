@@ -2,10 +2,10 @@ use v6;
 use Test;
 use lib 'lib';
 
-use Game::Engine::MUD;
+use Game::Engine;
 
-my $game_engine_mud = Game::Engine::MUD.new;
+my $engine = Game::Engine.new;
 
-does-ok $game_engine_mud, Game::Engine, 'Game::Engine::MUD has role Game::Engine';
+isa-ok $engine, Game::Engine;
 
 done-testing();
