@@ -2,9 +2,14 @@
 
 use v6;
 
+class Net::Server::Event {
+    has Str $.type;
+    has $.data;
+}
+
 class Net::Server {
     has Str:D $.host = 'localhost';
-    has Int:D $.port = 25;
+    has Int:D $.port = 23;
    
     # Events 
     has Supplier $!event_supplier .= new;
@@ -23,15 +28,11 @@ class Net::Server {
             my $client = $!socket.accept;
             
             $!event_supplier.emit( Net::Server::Event.new(:type<connect>, :data($client)) );
-
+            
+            
             $!event_supplier.emit( Net::Server::Event.new(:type<disconnect>, :data($client)) );
                                   
             $client.close;
         }
-    }
-    
-    class Net::Server::Event {
-        has Str $.type;
-        has $.data;
     }
 }
