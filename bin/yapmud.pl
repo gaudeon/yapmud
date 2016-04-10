@@ -2,8 +2,10 @@
 
 use v6;
 
-# TODO: figure out FindBin in perl 6
+BEGIN {
+    use lib $*SPEC.catdir(IO::Path.new($*PROGRAM.IO.absolute).dirname, $*SPEC.updir, 'lib');
+}
 
-#use Game;
+use Game;
 
-#my Game $game .= new;
+my Game $game .= new;

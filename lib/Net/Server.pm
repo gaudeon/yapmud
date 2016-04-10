@@ -19,8 +19,8 @@ class Net::Server {
     
     method run () {
         $!socket = IO::Socket::INET.new(
-            localhost => $.host,
-            localport => $.port,
+            localhost => $!host,
+            localport => $!port,
             :listen
         );
        

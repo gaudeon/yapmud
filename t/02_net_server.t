@@ -4,11 +4,13 @@ use lib 'lib';
 
 use Net::Server;
 
-init-testing();
-
-comms-testing();
-
-done-testing();
+sub MAIN () {
+    init-testing();
+    
+    comms-testing();
+    
+    done-testing();
+}
 
 # -- END OF TESTS
 
@@ -32,20 +34,30 @@ sub init-testing() {
 }
 
 sub comms-testing() {
-    # Run the server asynchronously
-    my Net::Server $server .= new(:port(23));
-
-    $server.events.tap( -> $event {
-        diag $event.gist;
-    });
+    my $thread = server();
     
-    $server.run();
+    my $client = client();
     
-    # TODO: create a test server script to load up a Net::Server in an alternate process, then run client connection tests here...
+    # TODO: build a quit mechanism for the server to make the thread end (otherwise blocks the test from completing)
 }
 
 # -- Misc subs
 
 sub client () {
     return IO::Socket::INET.new(:host<localhost>, :port(23));
+}
+
+sub server () {
+    return Thread.start(
+        :!app_lifetime,
+        sub {
+            my Net::Server $server .= new(:port(23));
+            
+            $server.events.tap(-> $event {
+                diag $event.gist;
+            });
+            
+            $server.run();
+        },
+    );
 }
