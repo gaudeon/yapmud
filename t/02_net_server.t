@@ -38,6 +38,8 @@ sub comms-testing() {
     
     my $client = client();
     
+    $thread.finish;
+    
     # TODO: build a quit mechanism for the server to make the thread end (otherwise blocks the test from completing)
 }
 
@@ -49,11 +51,12 @@ sub client () {
 
 sub server () {
     return Thread.start(
-        :!app_lifetime,
+        :app_lifetime,
         sub {
             my Net::Server $server .= new(:port(23));
             
             $server.events.tap(-> $event {
+                cmp-ok($event.type, '~~', /[connect|disconnect]/, 'event type is valid');
                 diag $event.gist;
             });
             
