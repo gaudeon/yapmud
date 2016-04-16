@@ -2,8 +2,6 @@
 
 use v6;
 
-use Test;
-
 role Net::Server::Command {
     my %commands;
 
@@ -11,11 +9,11 @@ role Net::Server::Command {
         %commands{$cmd} = $cb;
     }
 
-    method run_cmd (Str $msg) {
-        my @words = $msg.split('\b');
+    method run_cmd (Str $msg, Any $data) {
+        my @words = $msg.split(' ');
 
         my $command = @words.shift;
 
-        %commands{$command}.(@words) if %commands{$command};
+        %commands{$command}.(@words, $data) if %commands{$command};
     }
 }

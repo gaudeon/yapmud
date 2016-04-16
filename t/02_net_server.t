@@ -53,7 +53,13 @@ sub comms-testing () {
         if $p.status {
             my $conn = $p.result;
 
-            $conn.print("!shutdown");
+            $conn.Supply.tap(-> $msg {
+                cmp-ok $msg, 'eq', 'test 1 2 3 4', '!echo command functions correctly';
+            });
+
+            $conn.print("!echo test 1 2 3 4\n").then({
+                $conn.print("!shutdown\n");
+            });
         }
 
     });

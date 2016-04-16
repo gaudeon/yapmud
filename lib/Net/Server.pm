@@ -50,7 +50,11 @@ class Net::Server does Net::Server::Command {
 
         $.socket = IO::Socket::Async.listen($!host, $!port) or die X::Net::Server::FailedListen.new( :host($!host), :port($!port) );
 
-        self.register_cmd('!shutdown', {
+        self.register_cmd('!echo', -> @args, $client {
+            await $client.socket.print( @args.join(' ') );
+        });
+
+        self.register_cmd('!shutdown', -> @args, $client {
             for %!clients.kv -> $token, $client {
                 $!event_supplier.emit( Net::Server::Event.new(:type<disconnect>, :data( $client )) );
 
@@ -74,7 +78,9 @@ class Net::Server does Net::Server::Command {
             $client.socket.Supply.tap(-> $msg {
                 $!event_supplier.emit( Net::Server::Event.new(:type<message>, :data({ client => $client, message => $msg })) );
 
-                self.run_cmd($msg);
+                for $msg.split("\n") -> $line {
+                    self.run_cmd($line, $client);
+                }
             });
         }, quit => {
             $!running.keep(True);
