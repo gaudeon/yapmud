@@ -53,7 +53,7 @@ sub comms-testing () {
         if $p.status {
             my $conn = $p.result;
 
-            $conn.print("!quit");
+            $conn.print("!shutdown");
         }
 
     });
