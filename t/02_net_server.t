@@ -3,6 +3,7 @@ use Test;
 use lib 'lib';
 
 use Net::Server;
+use Net::Server::Command;
 
 sub MAIN () {
     init-testing();
@@ -15,10 +16,12 @@ sub MAIN () {
 # -- END OF TESTS
 
 # -- Test subs
-sub init-testing() {
+sub init-testing () {
     my Net::Server $server .= new;
 
     isa-ok $server, Net::Server;
+
+    does-ok $server, Net::Server::Command;
 
     cmp-ok $server.host, 'eq', 'localhost', 'Host default is set correctly';
 
@@ -33,33 +36,27 @@ sub init-testing() {
     isa-ok $server.events, 'Supply', 'On connect event isa Supply';
 }
 
-sub comms-testing() {
-    my $prom = server();
-
-    my $client = client();
-
-    $client.then( -> $p {
-        .print('HELO');
-    });
-
-    await $prom;
-
-    # TODO: build a quit mechanism for the server to make the thread end (otherwise blocks the test from completing)
-}
-
-# -- Misc subs
-
-sub client () {
-    return IO::Socket::Async.connect('localhost', 23);
-}
-
-sub server () {
-    my Net::Server $server .= new(:port(23));
+sub comms-testing () {
+    my Net::Server $server .= new;
 
     $server.events.tap(-> $event {
-        #cmp-ok($event.type, '~~', /[connect|disconnect]/, 'event type is valid');
-        diag $event.gist;
+        cmp-ok($event.type, '~~', /[connect|message|disconnect]/, "{$event.type} event is a valid type of event");
     });
 
-    return $server.listen();
+    my $server_prom = $server.listen();
+
+    cmp-ok $server.generate_client_token(), '~~', /<[0..9 a..f]> ** 32..32/, 'Server generates proper client token';
+
+    my $client_prom = IO::Socket::Async.connect('localhost', 23);
+
+    $client_prom.then(-> $p {
+        if $p.status {
+            my $conn = $p.result;
+
+            $conn.print("!quit");
+        }
+
+    });
+
+    await $server_prom;
 }

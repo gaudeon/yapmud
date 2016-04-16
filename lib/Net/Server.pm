@@ -2,6 +2,13 @@
 
 use v6;
 
+use Net::Server::Command;
+
+class Net::Server::Client {
+    has IO::Socket::Async $.socket;
+    has Str $.token;
+}
+
 class Net::Server::Event {
     has Str $.type;
     has $.data;
@@ -19,7 +26,13 @@ class X::Net::Server::FailedListen is X::Net::Server {
     }
 }
 
-class Net::Server {
+class X::Net::Server::FailedTokenGeneration is X::Net::Server {
+    method message {
+        "Failed to generate a validation client token";
+    }
+}
+
+class Net::Server does Net::Server::Command {
     has Str:D $.host = 'localhost';
     has Int:D $.port = 23;
 
@@ -28,31 +41,61 @@ class Net::Server {
     has Supply:D $.events = $!event_supplier.Supply;
 
     has Supply $.socket is rw;
+    has Promise $.running .= new;
 
-    method listen (Bool $block? = False) {
-        my Promise $prom .= new;
+    has Net::Server::Client %!clients;
+
+    method !init () {
+        return if $.socket;
 
         $.socket = IO::Socket::Async.listen($!host, $!port) or die X::Net::Server::FailedListen.new( :host($!host), :port($!port) );
 
-        $.socket.tap(-> $conn {
-            $!event_supplier.emit( Net::Server::Event.new(:type<connect>, :data($conn)) );
+        self.register_cmd('!quit', {
+            for %!clients.kv -> $token, $client {
+                $!event_supplier.emit( Net::Server::Event.new(:type<disconnect>, :data( $client )) );
 
-            react {
-                whenever $conn.Supply -> $msg {
-                    #if $msg.chars > 0 {
-                        $!event_supplier.emit( Net::Server::Event.new(:type<message>, :data({ conn => $conn, message => $msg })) );
-                    #}
-                }
+                $client.socket.close;
             }
 
-            #$!event_supplier.emit( Net::Server::Event.new(:type<disconnect>, :data($conn)) );
+            $!running.keep(True);
+        });
+    }
 
-            #$conn.close;
+    method listen (Bool $block? = False) {
+        self!init();
+
+        $.socket.tap(-> $conn {
+            my Net::Server::Client $client .= new( :socket($conn), :token(self.generate_client_token) );
+
+            $!event_supplier.emit( Net::Server::Event.new(:type<connect>, :data( $client ) ) );
+
+            %!clients{ $client.token } = $client;
+
+            $client.socket.Supply.tap(-> $msg {
+                $!event_supplier.emit( Net::Server::Event.new(:type<message>, :data({ client => $client, message => $msg })) );
+
+                self.run_cmd($msg);
+            });
         }, quit => {
-            $prom.keep(True);
+            $!running.keep(True);
         });
 
-        await $prom if $block;
-        return $prom;
+        await $!running if $block;
+        return $!running;
+    }
+
+    method generate_client_token () {
+        my @terms = (0..9,'a'..'f').flat;
+        my Str $token;
+
+        for 1 .. 100 {
+            $token = (map { @terms[ @terms.elems.rand.truncate ] }, 0..31).join;
+
+            last if !%!clients{$token};
+        }
+
+        die X::Net::Server::FailedTokenGeneration.new if ! $token;
+
+        return $token;
     }
 }
