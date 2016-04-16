@@ -2,5 +2,7 @@
 
 use v6;
 
-class Game::Engine {
+use Net::Server;
+
+class Game::Engine is Net::Server {
 }
