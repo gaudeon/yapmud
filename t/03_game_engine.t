@@ -4,8 +4,22 @@ use lib 'lib';
 
 use Game::Engine;
 
-my $engine = Game::Engine.new;
+sub MAIN () {
+    init-testing();
 
-isa-ok $engine, Game::Engine;
+    engine-testing();
 
-done-testing();
+    done-testing();
+}
+
+sub init-testing() {
+    my Game::Engine $engine .= new;
+
+    isa-ok $engine, Game::Engine;
+}
+
+sub engine-testing() {
+    my Game::Engine $engine .= new;
+
+    $engine.run();
+}

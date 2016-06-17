@@ -51,7 +51,7 @@ class Net::Server does Net::Server::Command {
         $.socket = IO::Socket::Async.listen($!host, $!port) or die X::Net::Server::FailedListen.new( :host($!host), :port($!port) );
 
         self.register_cmd('!echo', -> @args, $client {
-            await $client.socket.print( @args.join(' ') );
+            self.write( $client, @args.join(' ') );
         });
 
         self.register_cmd('!shutdown', -> @args, $client {
@@ -69,11 +69,9 @@ class Net::Server does Net::Server::Command {
         self!init();
 
         $.socket.tap(-> $conn {
-            my Net::Server::Client $client .= new( :socket($conn), :token(self.generate_client_token) );
+            my $client = self!add-client($conn);
 
             $!event_supplier.emit( Net::Server::Event.new(:type<connect>, :data( $client ) ) );
-
-            %!clients{ $client.token } = $client;
 
             $client.socket.Supply.tap(-> $msg {
                 $!event_supplier.emit( Net::Server::Event.new(:type<message>, :data({ client => $client, message => $msg })) );
@@ -88,6 +86,26 @@ class Net::Server does Net::Server::Command {
 
         await $!running if $block;
         return $!running;
+    }
+
+    method !add-client (IO::Socket::Async $conn) {
+        my Net::Server::Client $client .= new( :socket($conn), :token(self.generate_client_token) );
+
+        %!clients{ $client.token } = $client;
+
+        return $client;
+    }
+
+    method clients () {
+        return %!clients.values;
+    }
+
+    method client (Str $token) {
+        return %!clients{ $token };
+    }
+
+    method write (Net::Server::Client $client, Str $message) {
+        await $client.socket.print( $message );
     }
 
     method generate_client_token () {

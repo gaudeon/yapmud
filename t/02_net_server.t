@@ -41,6 +41,11 @@ sub comms-testing () {
 
     $server.events.tap(-> $event {
         cmp-ok($event.type, '~~', /[connect|message|disconnect]/, "{$event.type} event is a valid type of event");
+
+        if ($event.type eq 'connect') {
+            cmp-ok $server.clients.elems, '==', 1, 'there is a client in the client list';
+        }
+
     });
 
     my $server_prom = $server.listen();
